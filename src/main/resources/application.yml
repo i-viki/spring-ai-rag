@@ -1,0 +1,92 @@
+# =============================================================================
+#  Spring AI RAG — Application Configuration
+# =============================================================================
+#  All sensitive values are injected via environment variables.
+#  See .env.example for the required variables.
+# =============================================================================
+
+spring:
+  application:
+    name: spring-ai-rag
+
+  # ── Google Gemini Configuration ───────────────────────────────────────────
+  ai:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY:}
+        chat:
+          options:
+            model: gemini-2.5-flash
+            temperature: 0.7
+        embedding:
+          api-key: ${GEMINI_API_KEY:}
+          options:
+            model: text-embedding-004
+
+    # ── Vector Store Configuration ──────────────────────────────────────────
+    vectorstore:
+      mongodb:
+        initialize-schema: true
+        collection-name: vector_store
+        index-name: vector_index
+
+  # ── MongoDB Atlas Configuration ───────────────────────────────────────────
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/}
+      database: rag
+
+# ── Server Configuration ─────────────────────────────────────────────────────
+server:
+  port: ${SERVER_PORT:8080}
+
+# ── Actuator (Observability & Monitoring) ────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,httpexchange
+  endpoint:
+    health:
+      show-details: always
+  observations:
+    key-values:
+      application: spring-ai-rag
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+# ── Resilience4j (Rate Limiting) ─────────────────────────────────────────────
+resilience4j:
+  ratelimiter:
+    instances:
+      chatLimit:
+        limitForPeriod: 10
+        limitRefreshPeriod: 1m
+        timeoutDuration: 5s
+        registerHealthIndicator: true
+
+# ── Application Info (exposed via /actuator/info) ─────────────────────────────
+info:
+  app:
+    name: Spring AI RAG
+    version: 1.0.0
+    java-version: 21
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.nexus.rag: INFO
+    org.springframework.ai: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} — %msg%n"
+
+# ── OpenAPI / Swagger ─────────────────────────────────────────────────────────
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: method
+  api-docs:
+    path: /v3/api-docs

@@ -1,0 +1,24 @@
+# =============================================================================
+#  Spring AI RAG — Test Profile Configuration
+# =============================================================================
+#  Overrides for @SpringBootTest — disables external dependencies.
+# =============================================================================
+
+spring:
+  ai:
+    google:
+      genai:
+        api-key: test-key
+    vectorstore:
+      mongodb:
+        initialize-schema: false
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/
+      database: rag-test
+
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.googlegenai.autoconfigure.GoogleGenAiAutoConfiguration
+      - org.springframework.ai.autoconfigure.vectorstore.mongo.MongoDBAtlasVectorStoreAutoConfiguration
