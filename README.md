@@ -181,7 +181,7 @@ docker compose down
 | `GET` | `/actuator/prometheus` | Public | Prometheus scrape endpoint |
 | `GET` | `/swagger-ui.html` | Public | Interactive API documentation |
 
-> **Full API docs**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) (after starting the app)
+> **Full API docs**: `http://localhost:8080/swagger-ui.html` (after starting the app)
 
 ---
 
