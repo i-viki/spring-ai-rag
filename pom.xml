@@ -10,12 +10,12 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 
-	<groupId>com.nexus</groupId>
+	<groupId>dev.jayavignesh</groupId>
 	<artifactId>spring-ai-rag</artifactId>
 	<version>1.0.0</version>
 	<name>Spring AI RAG</name>
 	<description>Production-ready Retrieval-Augmented Generation (RAG) system powered by Spring Boot, Spring AI, MongoDB Atlas Vector Search, and Google Gemini.</description>
-	<url>https://github.com/nexus/spring-ai-rag</url>
+	<url>https://github.com/i-viki/spring-ai-rag</url>
 
 	<licenses>
 		<license>
@@ -27,15 +27,16 @@
 
 	<developers>
 		<developer>
-			<id>nexus</id>
-			<name>Nexus</name>
+			<id>i-viki</id>
+			<name>Jayavignesh</name>
+			<url>https://jayavignesh.dev</url>
 		</developer>
 	</developers>
 
 	<scm>
-		<connection>scm:git:git://github.com/nexus/spring-ai-rag.git</connection>
+		<connection>scm:git:git://github.com/i-viki/spring-ai-rag.git</connection>
 		<developerConnection>scm:git:ssh://github.com:nexus/spring-ai-rag.git</developerConnection>
-		<url>https://github.com/nexus/spring-ai-rag</url>
+		<url>https://github.com/i-viki/spring-ai-rag</url>
 		<tag>HEAD</tag>
 	</scm>
 
