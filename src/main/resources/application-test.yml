@@ -8,7 +8,16 @@ spring:
   ai:
     google:
       genai:
-        api-key: test-key
+        api-key: test-api-key
+        project-id: test-project-id
+        location: us-central1
+        chat:
+          options:
+            model: gemini-2.5-flash
+        embedding:
+          api-key: test-api-key
+          options:
+            model: text-embedding-004
     vectorstore:
       mongodb:
         initialize-schema: false
@@ -20,5 +29,9 @@ spring:
 
   autoconfigure:
     exclude:
-      - org.springframework.ai.model.googlegenai.autoconfigure.GoogleGenAiAutoConfiguration
-      - org.springframework.ai.autoconfigure.vectorstore.mongo.MongoDBAtlasVectorStoreAutoConfiguration
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+      - org.springframework.ai.vectorstore.mongodb.autoconfigure.MongoDBAtlasVectorStoreAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiTextEmbeddingAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiEmbeddingConnectionAutoConfiguration
