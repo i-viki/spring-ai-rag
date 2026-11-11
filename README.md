@@ -69,16 +69,16 @@ flowchart TB
         PROM["Prometheus Metrics Hub<br/>• /actuator/prometheus"]
     end
 
-    CLIENT -->|HTTP + X-API-KEY| GATEWAY
-    SWAGGER -->|Interactive Auth| GATEWAY
+    CLIENT -->|"HTTP + X-API-KEY"| GATEWAY
+    SWAGGER -->|"Interactive Auth"| GATEWAY
     GATEWAY --> CONTROLLERS
     
     RAG_CTRL --> RAG_PIPELINE
     DOCS_CTRL --> ETL_ENGINE
     
-    ETL_ENGINE -->|text-embedding-004| ATLAS
-    RAG_PIPELINE <-->|Similarity Search| ATLAS
-    GATEWAY -.->|Scrape Spans| PROM
+    ETL_ENGINE -->|"text-embedding-004"| ATLAS
+    RAG_PIPELINE <-->|"Similarity Search"| ATLAS
+    GATEWAY -.->|"Scrape Spans"| PROM
 ```
 
 ### Retrieval & Augmentation Workflow
