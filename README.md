@@ -1,260 +1,225 @@
-# Spring AI RAG
+# Spring AI RAG Engine
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Spring_Boot-3.5.5-6DB33F?style=flat&logo=spring-boot&logoColor=white" alt="Spring Boot"/>
-  <img src="https://img.shields.io/badge/Spring_AI-1.1.5-6DB33F?style=flat&logo=spring&logoColor=white" alt="Spring AI"/>
-  <img src="https://img.shields.io/badge/Java-21-ED8B00?style=flat&logo=openjdk&logoColor=white" alt="Java 21"/>
-  <img src="https://img.shields.io/badge/MongoDB_Atlas-47A248?style=flat&logo=mongodb&logoColor=white" alt="MongoDB Atlas"/>
-  <img src="https://img.shields.io/badge/Google_Gemini-8E75B2?style=flat&logo=google-gemini&logoColor=white" alt="Google Gemini"/>
-  <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker&logoColor=white" alt="Docker"/>
-  <img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=flat" alt="License"/>
-</p>
+[![Java](https://img.shields.io/badge/Java-21%20LTS-18181b?logo=openjdk&logoColor=ED8B00&labelColor=101012)](https://adoptium.net)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.5-18181b?logo=springboot&logoColor=6DB33F&labelColor=101012)](https://spring.io)
+[![Spring AI](https://img.shields.io/badge/Spring%20AI-1.1.5-18181b?logo=spring&logoColor=6DB33F&labelColor=101012)](https://spring.io/projects/spring-ai)
+[![MongoDB Atlas](https://img.shields.io/badge/MongoDB_Atlas-Vector_Search-18181b?logo=mongodb&logoColor=47A248&labelColor=101012)](https://cloud.mongodb.com)
+[![Gemini](https://img.shields.io/badge/Gemini_Flash-2.5-18181b?logo=google-gemini&logoColor=4285F4&labelColor=101012)](https://deepmind.google/technologies/gemini/)
+[![Resilience4j](https://img.shields.io/badge/Resilience4j-Rate_Limiter-18181b?logo=resilience4j&logoColor=F58220&labelColor=101012)](https://resilience4j.readme.io)
+[![Swagger](https://img.shields.io/badge/Swagger-OpenAPI_3-18181b?logo=swagger&logoColor=85EA2D&labelColor=101012)](https://swagger.io)
+[![Docker](https://img.shields.io/badge/Docker-Ready-18181b?logo=docker&logoColor=2496ED&labelColor=101012)](https://www.docker.com)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-yellow.svg)](LICENSE)
 
-> **Production-ready Retrieval-Augmented Generation (RAG) system** powered by Spring Boot, Spring AI, MongoDB Atlas Vector Search, and **Google Gemini** (free tier).
-
-Ask questions and get AI-generated answers grounded in **your own documents** — not just the model's training data.
+A production-ready **enterprise Retrieval-Augmented Generation (RAG) platform** engineered with **Java 21 LTS**, **Spring Boot 3.5.5**, **Spring AI 1.1.5**, and **MongoDB Atlas Vector Search**. Powered by **Google Gemini 2.5 Flash** and **text-embedding-004**, the engine automates ETL document chunking (`TokenTextSplitter`), high-dimensional cosine similarity indexing, sliding-window conversational memory (`MessageWindowChatMemory`), and resilient API governance using **Resilience4j** rate limiting.
 
 ---
 
-## Features
+## Key Architecture Pillars
 
-- **Declarative RAG** — Spring AI's `ChatClient` + `QuestionAnswerAdvisor` handles embedding, search, and prompt augmentation automatically
-- **Smart Document Ingestion** — Token-aware chunking via `TokenTextSplitter` with dynamic PDF and JSON file upload support
-- **Vector Search** — MongoDB Atlas Vector Search for high-performance similarity queries
-- **Free AI Tier** — Uses Gemini 2.5 Flash / text-embedding-004 — **no paid API key required**
-- **Enterprise Security** — API protection via `X-API-KEY` header with Spring Security
-- **Rate Limiting** — Resilience4j limits abuse to 10 requests/minute
-- **Conversational Memory** — `chatId`-based session memory with a 20-message sliding window
-- **Observability** — Spring Boot Actuator + Micrometer + Prometheus metrics endpoint
-- **Swagger UI** — Interactive OpenAPI 3.0 documentation with API key authorization support
-- **Docker Ready** — Multi-stage Dockerfile + Docker Compose with health checks
-- **Error Handling** — Global `@ControllerAdvice` with consistent JSON error responses
-- **Validation** — Request body validation with Jakarta Bean Validation
+- **Declarative RAG & Advisor Pipeline (`com.nexus.rag.controller.RagController`):**
+  Seamless orchestration pairing Spring AI's `ChatClient` with `QuestionAnswerAdvisor` to execute embedding lookups, vector matching, and grounded context augmentation transparently.
+- **Token-Aware ETL Ingestion Engine (`com.nexus.rag.service.DocsLoaderService`):**
+  High-throughput ingestion pipeline splitting PDFs (Apache PDFBox) and structured JSON documents into semantic tokens via `TokenTextSplitter` before writing 768-dimensional embeddings to MongoDB Atlas.
+- **Conversational Memory Window (`com.nexus.rag.config.AiConfig`):**
+  In-memory sliding session buffer (`MessageWindowChatMemory`) preserving the last 20 conversational turns per `chatId` to support coherent multi-turn reasoning.
+- **Enterprise API Key Security & Rate Limiting (`com.nexus.rag.config.SecurityConfig`):**
+  Zero-trust API protection requiring `X-API-KEY` verification paired with Resilience4j leaky bucket throttling (10 requests/minute per client instance).
+- **End-to-End Metric Telemetry (`com.nexus.rag`):**
+  Comprehensive observability via Spring Boot Actuator, Micrometer, and Prometheus scraping endpoints (`/actuator/prometheus`) tracking ingestion latency, token consumption, and JVM resource limits.
 
 ---
 
-## Architecture
+## System Architecture
 
+```mermaid
+flowchart TB
+    subgraph CLIENT["Consumer & Integration Tier"]
+        CLIENT_APP["API Consumer / Frontend<br/>Port: Client Dependent"]
+        SWAGGER["Swagger UI Studio<br/>Port: 8080/swagger-ui.html"]
+    end
+
+    subgraph GATEWAY["Security & Ingress Gateway (Java 21 / Spring Boot)"]
+        direction TB
+        SEC_FILTER["ApiKeyAuthFilter<br/>• X-API-KEY Validation"]
+        RATE_LIMIT["Resilience4j Rate Limiter<br/>• 10 req / min Bucket"]
+        SEC_FILTER --> RATE_LIMIT
+    end
+
+    subgraph CONTROLLERS["API Endpoints Tier"]
+        RAG_CTRL["RagController<br/>• POST /api/v1/chat/ask<br/>• GET /api/v1/chat/faq"]
+        DOCS_CTRL["DocsLoaderController<br/>• POST /api/v1/docs/upload<br/>• POST /api/v1/docs/load<br/>• DELETE /api/v1/docs/clear"]
+    end
+
+    subgraph RAG_PIPELINE["Spring AI Declarative RAG Engine"]
+        ADVISOR["QuestionAnswerAdvisor<br/>• Prompt Augmentation<br/>• Similarity Thresholding"]
+        MEMORY["MessageWindowChatMemory<br/>• 20-Turn Sliding Window<br/>• Session Isolation by chatId"]
+        CHAT_CLIENT["Spring AI ChatClient<br/>• Model: Gemini 2.5 Flash"]
+        ADVISOR <--> MEMORY
+        ADVISOR --> CHAT_CLIENT
+    end
+
+    subgraph ETL_ENGINE["Document ETL Pipeline"]
+        SPLITTER["TokenTextSplitter<br/>• 800-Token Chunking<br/>• 100-Token Overlap"]
+        PDF_READER["Apache PDFBox Ingestor<br/>• Dynamic PDF Extraction"]
+        SPLITTER --> PDF_READER
+    end
+
+    subgraph STORAGE["Vector & Telemetry Stores"]
+        ATLAS[("MongoDB Atlas Vector Search<br/>• 768-dim Embeddings<br/>• Cosine Similarity Index")]
+        PROM["Prometheus Metrics Hub<br/>• /actuator/prometheus"]
+    end
+
+    CLIENT -->|HTTP + X-API-KEY| GATEWAY
+    SWAGGER -->|Interactive Auth| GATEWAY
+    GATEWAY --> CONTROLLERS
+    
+    RAG_CTRL --> RAG_PIPELINE
+    DOCS_CTRL --> ETL_ENGINE
+    
+    ETL_ENGINE -->|text-embedding-004| ATLAS
+    RAG_PIPELINE <-->|Similarity Search| ATLAS
+    GATEWAY -.->|Scrape Spans| PROM
 ```
-User Question --> RagController --> MessageChatMemoryAdvisor --> QuestionAnswerAdvisor
-                                          |                              |
-                                   Load session history          Embed + Search
-                                   (InMemory, 20 msgs)         (MongoDB Atlas)
-                                                                         |
-                                                                  Augment Prompt
-                                                                         |
-                                                              Google Gemini 2.5 Flash
-                                                                         |
-                                                               AI-Powered Answer
-```
 
 ---
 
-## Prerequisites
+## Vector Cosine Similarity & Dynamic Chunking Invariants
 
-| Software | Version | Required |
-|---|---|---|
-| **Java JDK** | 21 (LTS) | Yes |
-| **Maven** | 3.9+ | Yes (included via `mvnw` wrapper) |
-| **Gemini API Key** | — | Yes — [Get one FREE](https://aistudio.google.com/apikey) |
-| **MongoDB Atlas** | M0+ | Yes — [Free tier](https://cloud.mongodb.com) |
-| **Docker** | 24+ | Optional |
+Spring AI RAG eliminates semantic blindspots through mathematical vector similarity scoring and bounded token windowing:
+
+$$\operatorname{CosineSimilarity}(\mathbf{u}, \mathbf{v}) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\|_2 \|\mathbf{v}\|_2} = \frac{\sum_{i=1}^{n} u_i v_i}{\sqrt{\sum_{i=1}^n u_i^2} \sqrt{\sum_{i=1}^n v_i^2}}$$
+
+| Configuration Parameter | Bound / Specification | Operational Justification |
+| :--- | :---: | :--- |
+| **Embedding Dimension** | `768 dimensions` | Native alignment with Google `text-embedding-004` vector space |
+| **Chunk Window Size** | `800 tokens` | Preserves semantic paragraph cohesion without exceeding LLM context |
+| **Chunk Overlap** | `100 tokens` | Eliminates boundary truncation across adjacent sentence splits |
+| **Rate Limit Threshold** | `10 requests / min` | Protects free-tier Gemini API quotas from exhaustion |
+| **Session Window** | `20 messages` | Retains immediate conversational state while bounding memory footprint |
 
 ---
 
-## Quick Start
+## Quickstart & Platform Orchestration
 
-### 1. Clone & Configure
+### Prerequisites
+- Java 21 LTS & Maven 3.9+ (wrapper included)
+- Google AI Studio API Key ([Get API Key](https://aistudio.google.com/apikey))
+- MongoDB Atlas Cluster M0+ ([Free MongoDB Cloud Account](https://cloud.mongodb.com))
+- Docker (Optional)
 
+---
+
+### Option A: Automated Docker Compose Orchestration (Recommended)
+
+Launch the containerized RAG service in a single command:
 ```bash
+# Clone repository
 git clone https://github.com/i-viki/spring-ai-rag.git
 cd spring-ai-rag
 
-# Copy and fill in your credentials
+# Configure environment variables
 cp .env.example .env
+# Edit .env with your GEMINI_API_KEY and MONGODB_URI
+
+# Launch container
+docker compose up --build -d
 ```
+*Application boots on `http://localhost:8080` with health checks verified.*
 
-Edit `.env`:
-```properties
-GEMINI_API_KEY=your-gemini-api-key-here
-MONGODB_URI=mongodb+srv://user:pass@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
-```
-
-### 2. Run
-
+To cleanly tear down:
 ```bash
-# Linux / macOS — the .env file is loaded automatically via spring-dotenv
-./mvnw spring-boot:run
-
-# Windows
-.\mvnw.cmd spring-boot:run
-```
-
-### 3. API Security
-
-All endpoints (except Actuator and Swagger) require the following header:
-
-- **Header**: `X-API-KEY`
-- **Default Key**: `nexus-admin-key-2024`
-- **Change it**: set `app.security.api-key` in `application.yml`
-
-> **Windows users**: Use `curl.exe` instead of `curl` to avoid PowerShell aliasing issues.
-> For JSON bodies, save your payload to a file and pass it with `-d @request.json`.
-
----
-
-### 4. Ingest Knowledge Base
-
-Load the bundled sample documents into MongoDB Atlas:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/docs/load \
-  -H "X-API-KEY: nexus-admin-key-2024"
-```
-
-### 5. Ask a Question
-
-Provide a `chatId` to maintain conversational context across requests:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/chat/ask \
-  -H "Content-Type: application/json" \
-  -H "X-API-KEY: nexus-admin-key-2024" \
-  -d '{
-    "message": "What is Spring AI?",
-    "chatId": "session-123"
-  }'
-```
-
-**Response:**
-```json
-{
-  "question": "What is Spring AI?",
-  "answer": "Spring AI is a framework that ...",
-  "model": "gemini-2.5-flash",
-  "timestamp": "2026-05-02T18:16:00Z"
-}
-```
-
-### 6. Upload a PDF
-
-```bash
-curl -X POST http://localhost:8080/api/v1/docs/upload \
-  -H "X-API-KEY: nexus-admin-key-2024" \
-  -F "file=@/path/to/document.pdf"
-```
-
-### 7. Clear Documents by Source
-
-```bash
-curl -X DELETE "http://localhost:8080/api/v1/docs/clear?source=document.pdf" \
-  -H "X-API-KEY: nexus-admin-key-2024"
-```
-
----
-
-## Docker
-
-```bash
-# Build and run (reads .env automatically)
-docker compose up --build
-
-# Stop
 docker compose down
 ```
 
 ---
 
-## API Reference
+### Option B: Step-by-Step Manual Launch
 
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/v1/chat/ask?message=...&chatId=...` | Required | Ask a question (browser-friendly) |
-| `POST` | `/api/v1/chat/ask` | Required | Ask a question with conversational memory |
-| `GET` | `/api/v1/chat/faq?message=...` | Required | Legacy compatibility endpoint |
-| `POST` | `/api/v1/docs/load` | Required | Ingest static JSON documents into vector store |
-| `GET` | `/api/v1/docs/load` | Required | Ingest static JSON documents (browser-friendly) |
-| `POST` | `/api/v1/docs/upload` | Required | Upload and ingest a PDF document |
-| `DELETE` | `/api/v1/docs/clear?source=...` | Required | Purge all chunks matching a source name |
-| `GET` | `/actuator/health` | Public | Application health status |
-| `GET` | `/actuator/metrics` | Public | Application metrics |
-| `GET` | `/actuator/prometheus` | Public | Prometheus scrape endpoint |
-| `GET` | `/swagger-ui.html` | Public | Interactive API documentation |
-
-> **Full API docs**: `http://localhost:8080/swagger-ui.html` (after starting the app)
-
----
-
-## Project Structure
-
+#### Step 1: Configure Local Secrets
+Populate `.env` in the project root:
+```properties
+GEMINI_API_KEY=your-gemini-api-key-here
+MONGODB_URI=mongodb+srv://user:password@cluster0.xxxxx.mongodb.net/rag_db?retryWrites=true&w=majority
 ```
-src/main/java/com/nexus/rag/
-├── SpringAiRagApplication.java      # Entry point
-├── config/
-│   ├── AiConfig.java                # ChatMemory bean (conversational history)
-│   ├── OpenApiConfig.java           # Swagger UI + API key security scheme
-│   ├── SecurityConfig.java          # X-API-KEY filter + Spring Security
-│   └── WebConfig.java               # CORS policy (all origins allowed)
-├── controller/
-│   ├── DocsLoaderController.java    # /api/v1/docs -- ingestion, upload, clear
-│   └── RagController.java           # /api/v1/chat -- ask, faq (rate-limited)
-├── dto/
-│   ├── ApiError.java                # Consistent error response schema
-│   ├── AskRequest.java              # Chat request (message + optional chatId)
-│   ├── AskResponse.java             # Chat response (question, answer, model, timestamp)
-│   └── IngestionResponse.java       # Ingestion result (status, count, duration)
-├── exception/
-│   ├── GlobalExceptionHandler.java  # Global @ControllerAdvice
-│   └── IngestionException.java      # Custom ingestion failure exception
-└── service/
-    └── DocsLoaderService.java       # ETL pipeline (JSON + PDF ingestion, delete)
+
+#### Step 2: Boot Application via Maven Wrapper
+```bash
+# Linux / macOS
+./mvnw spring-boot:run
+
+# Windows PowerShell
+.\mvnw.cmd spring-boot:run
+```
+
+#### Step 3: Seed Sample Knowledge Base
+```bash
+curl -X POST http://localhost:8080/api/v1/docs/load \
+  -H "X-API-KEY: nexus-admin-key-2024"
 ```
 
 ---
 
-## Documentation
+## Decoupled Environment Strategy
 
-For the complete technical deep-dive including architecture diagrams, configuration reference, troubleshooting guide, and deployment instructions, see:
+All credentials and vector cluster endpoints are extracted into clean environment variables loaded natively via `spring-dotenv`:
 
-**[docs/detailed_doc.md](docs/detailed_doc.md)**
-
----
-
-## Tech Stack
-
-| Component | Technology |
-|---|---|
-| **Runtime** | Java 21 (Eclipse Temurin) |
-| **Framework** | Spring Boot 3.5.5 |
-| **AI Orchestration** | Spring AI 1.1.5 |
-| **LLM / Embedding** | Google Gemini 2.5 Flash + text-embedding-004 (Free Tier) |
-| **Vector Database** | MongoDB Atlas Vector Search |
-| **Conversational Memory** | Spring AI `MessageWindowChatMemory` (in-memory, 20-message window) |
-| **Security** | Spring Security + custom `X-API-KEY` header filter |
-| **Rate Limiting** | Resilience4j (10 req/min per instance) |
-| **PDF Ingestion** | Spring AI PDF Document Reader + `TokenTextSplitter` |
-| **Observability** | Spring Boot Actuator + Micrometer + Prometheus |
-| **API Docs** | SpringDoc OpenAPI 2.8.5 (Swagger UI with API key authorization) |
-| **Environment** | `spring-dotenv` for native `.env` file loading |
-| **Build** | Maven 3.9+ (wrapper included) |
-| **Container** | Docker + Docker Compose |
+| Service / Layer | Config File | Template Reference | Key Variables |
+| :--- | :--- | :--- | :--- |
+| **AI LLM & Embeddings** | `application.yml` | [`.env.example`](.env.example) | `GEMINI_API_KEY`, `SPRING_AI_GEMINI_CHAT_MODEL` |
+| **Vector Store** | `application.yml` | [`.env.example`](.env.example) | `MONGODB_URI`, `SPRING_DATA_MONGODB_DATABASE` |
+| **Security Perimeter** | `application.yml` | [`.env.example`](.env.example) | `APP_SECURITY_API_KEY` (Default: `nexus-admin-key-2024`) |
+| **Rate Limiter** | `application.yml` | [`.env.example`](.env.example) | `RESILIENCE4J_RATELIMITER_INSTANCES_CHAT_LIMIT_FOR_PERIOD` |
 
 ---
 
-## License
+## Live Telemetry & Observability Hubs
 
-This project is licensed under the [Apache License 2.0](LICENSE).
+| Hub / Service | Port | URL | Role & Live Features |
+| :--- | :--- | :--- | :--- |
+| **Interactive Swagger UI** | `8080` | [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) | OpenAPI 3.0 interactive execution sandbox with `X-API-KEY` authorization. |
+| **OpenAPI Specification** | `8080` | [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs) | Raw OpenAPI schema for SDK generation. |
+| **Prometheus Metrics Hub** | `8080` | [http://localhost:8080/actuator/prometheus](http://localhost:8080/actuator/prometheus) | Time-series scraper publishing JVM heap, request latencies, and token counters. |
+| **Spring Actuator Health** | `8080` | [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) | Live liveness and readiness probe status. |
+
+---
+
+## Testing & Quality Assurance Suite
+
+### Application Unit & Integration Tests
+```bash
+./mvnw test
+# Validates rate-limiter fallback logic, DTO serialization, and advisor injection.
+```
+
+### Conversational Chat Query Test
+```bash
+curl -X POST http://localhost:8080/api/v1/chat/ask \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: nexus-admin-key-2024" \
+  -d '{
+    "message": "Explain the architecture of Spring AI vector stores.",
+    "chatId": "session-dev-42"
+  }'
+```
+
+### PDF Ingestion Upload Test
+```bash
+curl -X POST http://localhost:8080/api/v1/docs/upload \
+  -H "X-API-KEY: nexus-admin-key-2024" \
+  -F "file=@/path/to/documentation.pdf"
+```
 
 ---
 
 ## Author
 
-**Jayavignesh J**
-
-[![Website](https://img.shields.io/badge/Website-jayavignesh.dev-0A66C2?style=flat&logo=google-chrome&logoColor=white)](https://jayavignesh.dev)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-jayavigneshj-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/jayavigneshj)
-[![GitHub](https://img.shields.io/badge/GitHub-i--viki-181717?style=flat&logo=github&logoColor=white)](https://github.com/i-viki)
+**Jayavignesh**
+- **Website:** [jayavignesh.dev](https://jayavignesh.dev)
+- **GitHub:** [@i-viki](https://github.com/i-viki)
+- **Email:** [hello@jayavignesh.dev](mailto:hello@jayavignesh.dev)
 
 ---
 
-<p align="center">Built with Spring AI, MongoDB Atlas, and Google Gemini</p>
+## License
+
+This platform is distributed under the **Apache License 2.0**. See the [`LICENSE`](LICENSE) file for complete terms.
