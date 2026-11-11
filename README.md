@@ -81,6 +81,48 @@ flowchart TB
     GATEWAY -.->|Scrape Spans| PROM
 ```
 
+### Retrieval & Augmentation Workflow
+
+```text
+User Question --> RagController --> MessageChatMemoryAdvisor --> QuestionAnswerAdvisor
+                                          |                              |
+                                   Load session history          Embed + Search
+                                   (InMemory, 20 msgs)         (MongoDB Atlas)
+                                                                         |
+                                                                  Augment Prompt
+                                                                         |
+                                                               Google Gemini 2.5 Flash
+                                                                         |
+                                                                AI-Powered Answer
+```
+
+### Project Structure
+
+```text
+src/main/java/com/nexus/rag/
+├── SpringAiRagApplication.java      # Application bootstrap
+├── config/
+│   ├── AiConfig.java                # ChatMemory bean (conversational history)
+│   ├── OpenApiConfig.java           # Swagger UI + API key security scheme
+│   ├── SecurityConfig.java          # X-API-KEY filter + Spring Security
+│   └── WebConfig.java               # CORS policy configuration
+├── controller/
+│   ├── DocsLoaderController.java    # /api/v1/docs -- ingestion, upload, clear
+│   └── RagController.java           # /api/v1/chat -- ask, faq (rate-limited)
+├── dto/
+│   ├── ApiError.java                # Consistent error response schema
+│   ├── AskRequest.java              # Chat request (message + optional chatId)
+│   ├── AskResponse.java             # Chat response (question, answer, model, timestamp)
+│   └── IngestionResponse.java       # Ingestion result (status, count, duration)
+├── exception/
+│   ├── GlobalExceptionHandler.java  # Global @ControllerAdvice
+│   └── IngestionException.java      # Custom ingestion failure exception
+└── service/
+    └── DocsLoaderService.java       # ETL pipeline (JSON + PDF ingestion, delete)
+```
+
+> For deep architectural explanations, see the comprehensive [docs/detailed_doc.md](docs/detailed_doc.md).
+
 ---
 
 ## Vector Cosine Similarity & Dynamic Chunking Invariants
@@ -96,6 +138,24 @@ $$\operatorname{CosineSimilarity}(\mathbf{u}, \mathbf{v}) = \frac{\mathbf{u} \cd
 | **Chunk Overlap** | `100 tokens` | Eliminates boundary truncation across adjacent sentence splits |
 | **Rate Limit Threshold** | `10 requests / min` | Protects free-tier Gemini API quotas from exhaustion |
 | **Session Window** | `20 messages` | Retains immediate conversational state while bounding memory footprint |
+
+---
+
+## Core API Specification
+
+| Method & Path | Authorization | Purpose / Description |
+| :--- | :---: | :--- |
+| `POST /api/v1/chat/ask` | `X-API-KEY` | Primary endpoint for asking questions with session memory (`chatId`). |
+| `GET /api/v1/chat/ask` | `X-API-KEY` | Query parameter interface (`?message=...&chatId=...`) for browser testing. |
+| `GET /api/v1/chat/faq` | `X-API-KEY` | Legacy compatibility endpoint for quick FAQ retrieval. |
+| `POST /api/v1/docs/load`| `X-API-KEY` | Ingests bundled sample JSON knowledge base into MongoDB Atlas. |
+| `GET /api/v1/docs/load` | `X-API-KEY` | Browser-friendly GET trigger for document seeding. |
+| `POST /api/v1/docs/upload`| `X-API-KEY`| Multipart endpoint to upload and vectorize PDF documents dynamically. |
+| `DELETE /api/v1/docs/clear`| `X-API-KEY`| Purges all vectorized chunks matching a given `?source=...` reference. |
+| `GET /actuator/health` | Public | Application health, database liveness, and readiness probes. |
+| `GET /actuator/metrics`| Public | Micrometer runtime execution metrics. |
+| `GET /actuator/prometheus`| Public | Prometheus time-series scrape endpoint. |
+| `GET /swagger-ui.html` | Public | Interactive OpenAPI 3.0 documentation and execution sandbox. |
 
 ---
 
@@ -197,16 +257,32 @@ curl -X POST http://localhost:8080/api/v1/chat/ask \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: nexus-admin-key-2024" \
   -d '{
-    "message": "Explain the architecture of Spring AI vector stores.",
-    "chatId": "session-dev-42"
+    "message": "What is Spring AI?",
+    "chatId": "session-123"
   }'
+```
+
+**Sample Response:**
+```json
+{
+  "question": "What is Spring AI?",
+  "answer": "Spring AI is an application framework that provides a modular abstraction...",
+  "model": "gemini-2.5-flash",
+  "timestamp": "2026-05-02T18:16:00Z"
+}
 ```
 
 ### PDF Ingestion Upload Test
 ```bash
 curl -X POST http://localhost:8080/api/v1/docs/upload \
   -H "X-API-KEY: nexus-admin-key-2024" \
-  -F "file=@/path/to/documentation.pdf"
+  -F "file=@/path/to/document.pdf"
+```
+
+### Purge Ingested Documents
+```bash
+curl -X DELETE "http://localhost:8080/api/v1/docs/clear?source=document.pdf" \
+  -H "X-API-KEY: nexus-admin-key-2024"
 ```
 
 ---
